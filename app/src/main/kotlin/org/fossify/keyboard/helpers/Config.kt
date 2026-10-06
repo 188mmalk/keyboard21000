@@ -12,8 +12,8 @@ class Config(context: Context) : BaseConfig(context) {
     }
 
     var vibrateOnKeypress: Boolean
-        get() = prefs.getBoolean(VIBRATE_ON_KEYPRESS, true)
-        set(vibrateOnKeypress) = prefs.edit().putBoolean(VIBRATE_ON_KEYPRESS, vibrateOnKeypress).apply()
+        get() = false
+        set(vibrateOnKeypress) = prefs.edit().putBoolean(VIBRATE_ON_KEYPRESS, false).apply()
 
     var soundOnKeypress: Int
         get() = prefs.getInt(SOUND_ON_KEYPRESS, SOUND_SYSTEM)

@@ -2,22 +2,32 @@ package org.fossify.keyboard.adapters
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.drawable.LayerDrawable
-import android.graphics.drawable.RippleDrawable
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.PopupWindow
+import android.widget.TextView
+import androidx.appcompat.widget.TooltipCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
-import org.fossify.commons.extensions.*
+import org.fossify.commons.extensions.applyColorFilter
+import org.fossify.commons.extensions.getProperBackgroundColor
+import org.fossify.commons.extensions.getProperTextColor
+import org.fossify.commons.extensions.removeUnderlines
+import org.fossify.commons.extensions.toast
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.keyboard.R
 import org.fossify.keyboard.databinding.ItemClipOnKeyboardBinding
 import org.fossify.keyboard.databinding.ItemSectionLabelBinding
 import org.fossify.keyboard.extensions.clipsDB
-import org.fossify.keyboard.extensions.config
 import org.fossify.keyboard.extensions.getCurrentClip
-import org.fossify.keyboard.extensions.getStrokeColor
 import org.fossify.keyboard.helpers.ClipsHelper
 import org.fossify.keyboard.helpers.ITEM_CLIP
 import org.fossify.keyboard.helpers.ITEM_SECTION_LABEL
@@ -27,7 +37,9 @@ import org.fossify.keyboard.models.ClipsSectionLabel
 import org.fossify.keyboard.models.ListItem
 
 class ClipsKeyboardAdapter(
-    val context: Context, var items: ArrayList<ListItem>, val refreshClipsListener: RefreshClipsListener,
+    val context: Context,
+    var items: ArrayList<ListItem>,
+    val refreshClipsListener: RefreshClipsListener,
     val itemClick: (clip: Clip) -> Unit
 ) : RecyclerView.Adapter<ClipsKeyboardAdapter.ViewHolder>() {
 
@@ -69,52 +81,130 @@ class ClipsKeyboardAdapter(
             clipValue.apply {
                 text = clip.value
                 removeUnderlines()
+                setOnLongClickListener {
+                    showClipOptionsPopup(clip, view)
+                    true
+                }
             }
+
+            // Disable OS ephemeral tooltip that vanishes when lifting finger
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                clipPinBtn.tooltipText = null
+                clipDeleteBtn.tooltipText = null
+            }
+            TooltipCompat.setTooltipText(clipPinBtn, null)
+            TooltipCompat.setTooltipText(clipDeleteBtn, null)
 
             clipPinBtn.apply {
                 if (clip.isPinned) {
                     setImageResource(R.drawable.ic_pin_cyan)
-                    contentDescription = context.getString(R.string.unpin_text)
                 } else {
                     setImageResource(R.drawable.ic_pin_outline_gray)
-                    contentDescription = context.getString(R.string.pin_text)
                 }
 
                 setOnClickListener {
-                    ensureBackgroundThread {
-                        val newPinned = !clip.isPinned
-                        if (clip.id != null && clip.id != -1L) {
-                            context.clipsDB.updatePinned(clip.id!!, newPinned)
-                        } else {
-                            val newClip = Clip(null, clip.value, newPinned)
-                            ClipsHelper(context).insertClip(newClip)
-                        }
-                        android.os.Handler(android.os.Looper.getMainLooper()).post {
-                            context.toast(if (newPinned) R.string.text_pinned else R.string.text_unpinned)
-                            refreshClipsListener.refreshClips()
-                        }
-                    }
+                    togglePinClip(clip)
+                }
+
+                setOnLongClickListener {
+                    showClipOptionsPopup(clip, view)
+                    true
                 }
             }
 
             clipDeleteBtn.apply {
                 setOnClickListener {
-                    if (clip.isPinned) {
-                        // CRITICAL: Pinned clips MUST NOT be deleted unless unpinned!
-                        context.toast(R.string.cannot_delete_pinned)
-                        return@setOnClickListener
-                    }
-                    ensureBackgroundThread {
-                        if (clip.id != null && clip.id != -1L) {
-                            context.clipsDB.delete(clip.id!!)
-                        }
-                        android.os.Handler(android.os.Looper.getMainLooper()).post {
-                            refreshClipsListener.refreshClips()
-                        }
-                    }
+                    deleteClip(clip)
+                }
+
+                setOnLongClickListener {
+                    showClipOptionsPopup(clip, view)
+                    true
                 }
             }
         }
+    }
+
+    private fun togglePinClip(clip: Clip) {
+        ensureBackgroundThread {
+            val newPinned = !clip.isPinned
+            if (clip.id != null && clip.id != -1L) {
+                context.clipsDB.updatePinned(clip.id!!, newPinned)
+            } else {
+                val newClip = Clip(null, clip.value, newPinned)
+                ClipsHelper(context).insertClip(newClip)
+            }
+            Handler(Looper.getMainLooper()).post {
+                context.toast(if (newPinned) R.string.text_pinned else R.string.text_unpinned)
+                refreshClipsListener.refreshClips()
+            }
+        }
+    }
+
+    private fun deleteClip(clip: Clip) {
+        if (clip.isPinned) {
+            // CRITICAL: Pinned clips MUST NOT be deleted unless unpinned first!
+            context.toast(R.string.cannot_delete_pinned)
+            return
+        }
+        ensureBackgroundThread {
+            if (clip.id != null && clip.id != -1L) {
+                context.clipsDB.delete(clip.id!!)
+            }
+            Handler(Looper.getMainLooper()).post {
+                refreshClipsListener.refreshClips()
+            }
+        }
+    }
+
+    /**
+     * Shows a persistent options popup that does NOT disappear when lifting the finger.
+     */
+    fun showClipOptionsPopup(clip: Clip, anchorView: View) {
+        val popupView = layoutInflater.inflate(R.layout.dialog_clip_options, null)
+
+        val popup = PopupWindow(
+            popupView,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        ).apply {
+            elevation = 20f
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            isOutsideTouchable = true
+        }
+
+        val clipTextPreview = popupView.findViewById<TextView>(R.id.popup_clip_preview)
+        val btnPin = popupView.findViewById<View>(R.id.popup_btn_pin)
+        val pinText = popupView.findViewById<TextView>(R.id.popup_pin_text)
+        val pinIcon = popupView.findViewById<ImageView>(R.id.popup_pin_icon)
+        val btnDelete = popupView.findViewById<View>(R.id.popup_btn_delete)
+        val btnCancel = popupView.findViewById<View>(R.id.popup_btn_cancel)
+
+        clipTextPreview.text = clip.value
+        if (clip.isPinned) {
+            pinText.setText(R.string.unpin_text)
+            pinIcon.setImageResource(R.drawable.ic_pin_cyan)
+        } else {
+            pinText.setText(R.string.pin_text)
+            pinIcon.setImageResource(R.drawable.ic_pin_outline_gray)
+        }
+
+        btnPin.setOnClickListener {
+            popup.dismiss()
+            togglePinClip(clip)
+        }
+
+        btnDelete.setOnClickListener {
+            popup.dismiss()
+            deleteClip(clip)
+        }
+
+        btnCancel.setOnClickListener {
+            popup.dismiss()
+        }
+
+        popup.showAtLocation(anchorView, Gravity.CENTER, 0, 0)
     }
 
     @SuppressLint("UseCompatLoadingForDrawables")
@@ -129,7 +219,6 @@ class ClipsKeyboardAdapter(
                 applyColorFilter(textColor)
 
                 if (sectionLabel.isCurrent) {
-                    setOnLongClickListener { context.toast(R.string.pin_text); true; }
                     setImageDrawable(resources.getDrawable(R.drawable.ic_pin_vector))
                     setOnClickListener {
                         ensureBackgroundThread {
@@ -138,14 +227,11 @@ class ClipsKeyboardAdapter(
                             ClipsHelper(context).insertClip(clip)
                             refreshClipsListener.refreshClips()
                             context.toast(R.string.text_pinned)
-                            if (context.config.vibrateOnKeypress) {
-                                performHapticFeedback()
-                            }
                         }
                     }
                 } else {
                     setImageDrawable(resources.getDrawable(R.drawable.ic_pin_filled_vector))
-                    background = null   // avoid doing any animations on clicking clipboard_manager_holder
+                    background = null
                 }
             }
         }
@@ -159,6 +245,10 @@ class ClipsKeyboardAdapter(
                 if (any is Clip) {
                     setOnClickListener {
                         itemClick.invoke(any)
+                    }
+                    setOnLongClickListener {
+                        showClipOptionsPopup(any, it)
+                        true
                     }
                 }
             }

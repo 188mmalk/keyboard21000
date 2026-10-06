@@ -46,6 +46,8 @@ import androidx.core.view.updateMarginsRelative
 import androidx.emoji2.text.EmojiCompat
 import androidx.emoji2.text.EmojiCompat.EMOJI_SUPPORTED
 import androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.beGone
@@ -137,6 +139,7 @@ class MyKeyboardView @JvmOverloads constructor(
 
     private var accessHelper: AccessHelper? = null
     private val feedbackManager by lazy { KeyboardFeedbackManager(context) }
+    private var clipsTouchHelper: ItemTouchHelper? = null
 
     private var mKeyboard: MyKeyboard? = null
     private var mCurrentKeyIndex: Int = NOT_A_KEY
@@ -710,7 +713,7 @@ class MyKeyboardView @JvmOverloads constructor(
     }
 
     fun vibrateIfNeeded() {
-        feedbackManager.vibrateIfNeeded(this)
+        // Disabled completely per user request
     }
 
     fun performKeypressFeedback(keyCode: Int) {
@@ -718,7 +721,7 @@ class MyKeyboardView @JvmOverloads constructor(
     }
 
     fun performHapticHandleMove() {
-        feedbackManager.performHapticHandleMove(this)
+        // Disabled completely per user request
     }
 
     /**
@@ -1853,6 +1856,56 @@ class MyKeyboardView @JvmOverloads constructor(
         }
 
         keyboardViewBinding?.clipsList?.adapter = adapter
+
+        if (clipsTouchHelper == null) {
+            val swipeCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+                override fun onMove(
+                    recyclerView: RecyclerView,
+                    viewHolder: RecyclerView.ViewHolder,
+                    target: RecyclerView.ViewHolder
+                ): Boolean = false
+
+                override fun getSwipeDirs(
+                    recyclerView: RecyclerView,
+                    viewHolder: RecyclerView.ViewHolder
+                ): Int {
+                    val currentAdapter = recyclerView.adapter as? ClipsKeyboardAdapter ?: return 0
+                    val position = viewHolder.bindingAdapterPosition
+                    if (position !in 0 until currentAdapter.items.size) return 0
+                    val item = currentAdapter.items[position]
+                    if (item !is Clip) return 0
+                    // Strictly swipe from Right to Left
+                    return ItemTouchHelper.LEFT
+                }
+
+                override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                    val position = viewHolder.bindingAdapterPosition
+                    val currentAdapter = keyboardViewBinding?.clipsList?.adapter as? ClipsKeyboardAdapter ?: return
+                    if (position !in 0 until currentAdapter.items.size) return
+                    val item = currentAdapter.items[position]
+                    if (item is Clip) {
+                        if (item.isPinned) {
+                            // CRITICAL: Pinned texts MUST NOT be deleted unless unpinned!
+                            currentAdapter.notifyItemChanged(position)
+                            context.toast(R.string.cannot_delete_pinned)
+                            return
+                        }
+                        ensureBackgroundThread {
+                            if (item.id != null && item.id != -1L) {
+                                context.clipsDB.delete(item.id!!)
+                            }
+                            Handler(Looper.getMainLooper()).post {
+                                setupStoredClips()
+                            }
+                        }
+                    }
+                }
+            }
+            clipsTouchHelper = ItemTouchHelper(swipeCallback)
+            keyboardViewBinding?.clipsList?.let { rv ->
+                clipsTouchHelper!!.attachToRecyclerView(rv)
+            }
+        }
     }
 
     private fun setupEmojiPalette(toolbarColor: Int, backgroundColor: Int, textColor: Int) {

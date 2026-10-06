@@ -2,15 +2,12 @@ package org.fossify.keyboard.helpers
 
 import android.content.Context
 import android.media.AudioManager
-import android.view.HapticFeedbackConstants
 import android.view.View
-import org.fossify.commons.extensions.performHapticFeedback
-import org.fossify.commons.helpers.isOreoMr1Plus
 import org.fossify.keyboard.extensions.config
 import org.fossify.keyboard.extensions.safeStorageContext
 
 /**
- * Helper for keypress haptics and audio.
+ * Helper for keypress audio (vibration disabled per user request).
  */
 class KeyboardFeedbackManager(private val context: Context) {
 
@@ -22,24 +19,17 @@ class KeyboardFeedbackManager(private val context: Context) {
     }
 
     /**
-     * Perform haptic feedback for standard keypress.
+     * Vibrate disabled completely per user request.
      */
     fun vibrateIfNeeded(view: View) {
-        if (config.vibrateOnKeypress) view.performHapticFeedback()
+        // No-op: Vibration completely removed
     }
 
     /**
-     * Perform haptic feedback for cursor handle movement.
+     * Cursor haptic disabled completely per user request.
      */
     fun performHapticHandleMove(view: View) {
-        if (!config.vibrateOnKeypress) return
-        if (isOreoMr1Plus()) {
-            @Suppress("DEPRECATION")
-            view.performHapticFeedback(
-                HapticFeedbackConstants.TEXT_HANDLE_MOVE,
-                HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
-            )
-        }
+        // No-op: Vibration completely removed
     }
 
     /**
@@ -63,10 +53,9 @@ class KeyboardFeedbackManager(private val context: Context) {
     }
 
     /**
-     * Perform both haptic and audio feedback for a keypress.
+     * Perform audio feedback for a keypress (vibration disabled).
      */
     fun performKeypressFeedback(view: View, keyCode: Int) {
-        vibrateIfNeeded(view)
         playKeypressSoundIfNeeded(keyCode)
     }
 }

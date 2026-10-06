@@ -31,7 +31,7 @@ interface ClipsDao {
     @Query("DELETE FROM clips WHERE id = :id AND is_pinned = 0")
     fun delete(id: Long)
 
-    @Query("DELETE FROM clips WHERE id = :id")
+    @Query("DELETE FROM clips WHERE id = :id AND is_pinned = 0")
     fun forceDelete(id: Long)
 
     // Deleting all clipboard texts deletes ONLY unpinned clips! Pinned items are protected!

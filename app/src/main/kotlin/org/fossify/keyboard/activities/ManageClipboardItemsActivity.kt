@@ -11,6 +11,8 @@ import org.fossify.commons.dialogs.FilePickerDialog
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.*
 import org.fossify.commons.interfaces.RefreshRecyclerViewListener
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.RecyclerView
 import org.fossify.keyboard.R
 import org.fossify.keyboard.adapters.ClipsActivityAdapter
 import org.fossify.keyboard.databinding.ActivityManageClipboardItemsBinding
@@ -98,6 +100,8 @@ class ManageClipboardItemsActivity : SimpleActivity(), RefreshRecyclerViewListen
         updateClips()
     }
 
+    private var clipsSwipeHelper: ItemTouchHelper? = null
+
     private fun updateClips() {
         ensureBackgroundThread {
             val clips = clipsDB.getClips().toMutableList() as ArrayList<Clip>
@@ -106,6 +110,48 @@ class ManageClipboardItemsActivity : SimpleActivity(), RefreshRecyclerViewListen
                     addOrEditClip(it as Clip)
                 }.apply {
                     binding.clipboardItemsList.adapter = this
+                }
+
+                if (clipsSwipeHelper == null) {
+                    val swipeCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+                        override fun onMove(
+                            recyclerView: RecyclerView,
+                            viewHolder: RecyclerView.ViewHolder,
+                            target: RecyclerView.ViewHolder
+                        ): Boolean = false
+
+                        override fun getSwipeDirs(
+                            recyclerView: RecyclerView,
+                            viewHolder: RecyclerView.ViewHolder
+                        ): Int {
+                            val adapter = recyclerView.adapter as? ClipsActivityAdapter ?: return 0
+                            val pos = viewHolder.bindingAdapterPosition
+                            if (pos !in 0 until adapter.items.size) return 0
+                            return ItemTouchHelper.LEFT
+                        }
+
+                        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                            val adapter = binding.clipboardItemsList.adapter as? ClipsActivityAdapter ?: return
+                            val pos = viewHolder.bindingAdapterPosition
+                            if (pos !in 0 until adapter.items.size) return
+                            val clip = adapter.items[pos]
+                            if (clip.isPinned) {
+                                adapter.notifyItemChanged(pos)
+                                toast(R.string.cannot_delete_pinned)
+                                return
+                            }
+                            ensureBackgroundThread {
+                                if (clip.id != null) {
+                                    clipsDB.delete(clip.id!!.toLong())
+                                }
+                                runOnUiThread {
+                                    updateClips()
+                                }
+                            }
+                        }
+                    }
+                    clipsSwipeHelper = ItemTouchHelper(swipeCallback)
+                    clipsSwipeHelper!!.attachToRecyclerView(binding.clipboardItemsList)
                 }
 
                 binding.apply {
