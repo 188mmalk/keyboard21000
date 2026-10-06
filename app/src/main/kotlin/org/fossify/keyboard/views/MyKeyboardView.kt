@@ -687,16 +687,17 @@ class MyKeyboardView @JvmOverloads constructor(
             mToolbarHolder?.beInvisibleIf(context.isDeviceLocked)
 
             topClipboardDivider.beGone()
-            clipboardManagerTopBar.background = ColorDrawable(mKeyboardBackgroundColor)
-            clipboardManagerHolder.background = ColorDrawable(mBackgroundColor)
+            clipboardManagerTopBar.background = resources.getDrawable(R.drawable.bg_toolbar_neon, context.theme)
+            clipboardManagerHolder.background = ColorDrawable(Color.parseColor("#060B14"))
+            clipboardManagerHolder.layoutDirection = View.LAYOUT_DIRECTION_RTL
 
-            clipboardManagerClose.setTextColor(Color.WHITE)
-            clipboardManagerManage.applyColorFilter(Color.WHITE)
+            clipboardManagerClose.setTextColor(Color.parseColor("#00D2FF"))
+            clipboardManagerManage.applyColorFilter(Color.parseColor("#00BCD4"))
             clipboardManagerClearAll.applyColorFilter(Color.parseColor("#00BCD4"))
 
-            clipboardManagerLabel.setTextColor(Color.WHITE)
-            clipboardContentPlaceholder1.setTextColor(mTextColor)
-            clipboardContentPlaceholder2.setTextColor(mTextColor)
+            clipboardManagerLabel.setTextColor(Color.parseColor("#00D2FF"))
+            clipboardContentPlaceholder1.setTextColor(Color.parseColor("#80A0C0"))
+            clipboardContentPlaceholder2.setTextColor(Color.parseColor("#507090"))
         }
 
         setupEmojiPalette(
@@ -1753,6 +1754,7 @@ class MyKeyboardView @JvmOverloads constructor(
     fun openClipboardManager() {
         closeAllPanels()
         keyboardViewBinding?.apply {
+            clipboardManagerHolder.layoutDirection = View.LAYOUT_DIRECTION_RTL
             clipboardManagerHolder.beVisible()
             suggestionsHolder.hideAllInlineContentViews()
         }

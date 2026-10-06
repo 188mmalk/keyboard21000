@@ -81,46 +81,30 @@ class ClipsKeyboardAdapter(
             clipValue.apply {
                 text = clip.value
                 removeUnderlines()
-                setOnLongClickListener {
-                    showClipOptionsPopup(clip, view)
-                    true
-                }
             }
 
-            // Disable OS ephemeral tooltip that vanishes when lifting finger
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                clipPinBtn.tooltipText = null
-                clipDeleteBtn.tooltipText = null
-            }
-            TooltipCompat.setTooltipText(clipPinBtn, null)
-            TooltipCompat.setTooltipText(clipDeleteBtn, null)
+            clipPinIndicator.visibility = if (clip.isPinned) View.VISIBLE else View.GONE
 
-            clipPinBtn.apply {
-                if (clip.isPinned) {
-                    setImageResource(R.drawable.ic_pin_cyan)
-                } else {
-                    setImageResource(R.drawable.ic_pin_outline_gray)
-                }
-
-                setOnClickListener {
-                    togglePinClip(clip)
-                }
-
-                setOnLongClickListener {
-                    showClipOptionsPopup(clip, view)
-                    true
-                }
+            root.setOnClickListener {
+                itemClick.invoke(clip)
             }
 
-            clipDeleteBtn.apply {
-                setOnClickListener {
-                    deleteClip(clip)
-                }
+            root.setOnLongClickListener {
+                showClipOptionsPopup(clip, view)
+                true
+            }
 
-                setOnLongClickListener {
-                    showClipOptionsPopup(clip, view)
-                    true
-                }
+            clipValue.setOnClickListener {
+                itemClick.invoke(clip)
+            }
+
+            clipValue.setOnLongClickListener {
+                showClipOptionsPopup(clip, view)
+                true
+            }
+
+            clipPinIndicator.setOnClickListener {
+                showClipOptionsPopup(clip, view)
             }
         }
     }
@@ -212,14 +196,13 @@ class ClipsKeyboardAdapter(
         ItemSectionLabelBinding.bind(view).apply {
             clipsSectionLabel.apply {
                 text = sectionLabel.value
-                setTextColor(textColor)
+                setTextColor(Color.parseColor("#00D2FF"))
             }
 
             clipsSectionIcon.apply {
-                applyColorFilter(textColor)
-
                 if (sectionLabel.isCurrent) {
-                    setImageDrawable(resources.getDrawable(R.drawable.ic_pin_vector))
+                    visibility = View.VISIBLE
+                    setImageResource(R.drawable.ic_pin_cyan)
                     setOnClickListener {
                         ensureBackgroundThread {
                             val currentClip = context.getCurrentClip() ?: return@ensureBackgroundThread
@@ -230,8 +213,7 @@ class ClipsKeyboardAdapter(
                         }
                     }
                 } else {
-                    setImageDrawable(resources.getDrawable(R.drawable.ic_pin_filled_vector))
-                    background = null
+                    visibility = View.GONE
                 }
             }
         }
