@@ -192,11 +192,23 @@ fun Context.setupKeyboardDialogStuff(
 fun Context.getVoiceInputMethods(
     imm: InputMethodManager = inputMethodManager
 ): List<Pair<InputMethodInfo, InputMethodSubtype>> {
-    return imm.enabledInputMethodList.flatMap { im ->
-        imm.getEnabledInputMethodSubtypeList(im, true)
-            .filter { it.mode == INPUT_METHOD_SUBTYPE_VOICE }
-            .map { im to it }
+    val result = ArrayList<Pair<InputMethodInfo, InputMethodSubtype>>()
+    for (im in imm.enabledInputMethodList) {
+        val subtypes = imm.getEnabledInputMethodSubtypeList(im, true)
+        val voiceSubtypes = subtypes.filter { it.mode == INPUT_METHOD_SUBTYPE_VOICE }
+        if (voiceSubtypes.isNotEmpty()) {
+            for (st in voiceSubtypes) {
+                result.add(im to st)
+            }
+        } else if (im.id.contains("voice", ignoreCase = true) ||
+            im.packageName.contains("voice", ignoreCase = true) ||
+            im.id.contains("googlequicksearchbox", ignoreCase = true)
+        ) {
+            val fallbackSubtype = subtypes.firstOrNull() ?: InputMethodSubtype.InputMethodSubtypeBuilder().build()
+            result.add(im to fallbackSubtype)
+        }
     }
+    return result
 }
 
 fun Context.getCurrentVoiceInputMethod(

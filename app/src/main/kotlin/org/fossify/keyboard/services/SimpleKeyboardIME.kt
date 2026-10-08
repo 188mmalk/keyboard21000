@@ -33,6 +33,7 @@ import android.view.inputmethod.ExtractedTextRequest
 import android.view.inputmethod.InlineSuggestionsRequest
 import android.view.inputmethod.InlineSuggestionsResponse
 import android.view.inputmethod.InputConnection
+import android.view.inputmethod.InputMethodManager
 import android.view.inputmethod.InputMethodSubtype
 import android.widget.inline.InlinePresentationSpec
 import androidx.annotation.RequiresApi
@@ -548,10 +549,19 @@ class SimpleKeyboardIME : InputMethodService(), OnKeyboardActionListener, Shared
     }
 
     override fun changeInputMethod(id: String, subtype: InputMethodSubtype) {
-        if (isPiePlus()) {
-            switchInputMethod(id, subtype)
-        } else {
-            switchInputMethod(id)
+        try {
+            if (isPiePlus()) {
+                switchInputMethod(id, subtype)
+            } else {
+                switchInputMethod(id)
+            }
+        } catch (e: Exception) {
+            try {
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.showInputMethodPicker()
+            } catch (e2: Exception) {
+                // ignore
+            }
         }
     }
 

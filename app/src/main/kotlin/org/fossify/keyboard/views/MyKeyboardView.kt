@@ -91,6 +91,7 @@ import org.fossify.keyboard.helpers.AccessHelper
 import org.fossify.keyboard.helpers.EMOJI_SPEC_FILE_PATH
 import org.fossify.keyboard.helpers.EmojiData
 import org.fossify.keyboard.helpers.KeyboardFeedbackManager
+import org.fossify.keyboard.helpers.LANGUAGE_ARABIC
 import org.fossify.keyboard.helpers.LANGUAGE_TURKISH_Q
 import org.fossify.keyboard.helpers.LANGUAGE_VIETNAMESE_TELEX
 import org.fossify.keyboard.helpers.LANGUAGE_VN_TELEX
@@ -697,7 +698,13 @@ class MyKeyboardView @JvmOverloads constructor(
             topClipboardDivider.beGone()
             clipboardManagerTopBar.background = resources.getDrawable(R.drawable.bg_toolbar_neon, context.theme)
             clipboardManagerHolder.background = ColorDrawable(Color.parseColor("#060B14"))
-            clipboardManagerHolder.layoutDirection = View.LAYOUT_DIRECTION_RTL
+            clipboardManagerHolder.layoutDirection = View.LAYOUT_DIRECTION_LTR
+
+            val isArabic = context.config.keyboardLanguage == LANGUAGE_ARABIC
+            val closeLabel = if (isArabic) "أ ب ج" else "ABC"
+            clipboardManagerClose.text = closeLabel
+            toolsMenuClose.text = closeLabel
+            textEditorClose.text = closeLabel
 
             clipboardManagerClose.setTextColor(Color.parseColor("#00D2FF"))
             clipboardManagerManage.applyColorFilter(Color.parseColor("#00BCD4"))
@@ -1762,7 +1769,9 @@ class MyKeyboardView @JvmOverloads constructor(
     fun openClipboardManager() {
         closeAllPanels()
         keyboardViewBinding?.apply {
-            clipboardManagerHolder.layoutDirection = View.LAYOUT_DIRECTION_RTL
+            clipboardManagerHolder.layoutDirection = View.LAYOUT_DIRECTION_LTR
+            val isArabic = context.config.keyboardLanguage == LANGUAGE_ARABIC
+            clipboardManagerClose.text = if (isArabic) "أ ب ج" else "ABC"
             clipboardManagerHolder.beVisible()
             suggestionsHolder.hideAllInlineContentViews()
         }
@@ -1772,6 +1781,8 @@ class MyKeyboardView @JvmOverloads constructor(
     fun openToolsMenu() {
         closeAllPanels()
         keyboardViewBinding?.apply {
+            val isArabic = context.config.keyboardLanguage == LANGUAGE_ARABIC
+            toolsMenuClose.text = if (isArabic) "أ ب ج" else "ABC"
             toolsMenuHolder.beVisible()
             suggestionsHolder.hideAllInlineContentViews()
         }
@@ -1780,6 +1791,8 @@ class MyKeyboardView @JvmOverloads constructor(
     fun openTextEditor() {
         closeAllPanels()
         keyboardViewBinding?.apply {
+            val isArabic = context.config.keyboardLanguage == LANGUAGE_ARABIC
+            textEditorClose.text = if (isArabic) "أ ب ج" else "ABC"
             textEditorHolder.beVisible()
             suggestionsHolder.hideAllInlineContentViews()
         }
