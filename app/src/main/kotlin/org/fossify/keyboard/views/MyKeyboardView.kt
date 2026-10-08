@@ -390,7 +390,15 @@ class MyKeyboardView @JvmOverloads constructor(
             voiceInputButton.setOnClickListener {
                 val inputMethod = context.getCurrentVoiceInputMethod()
                 if (inputMethod == null) {
-                    context.toast(R.string.no_app_found)
+                    try {
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS).apply {
+                            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        context.startActivity(intent)
+                        context.toast(R.string.enable_voice_typing_settings)
+                    } catch (e: Exception) {
+                        context.toast(R.string.no_app_found)
+                    }
                     return@setOnClickListener
                 }
 

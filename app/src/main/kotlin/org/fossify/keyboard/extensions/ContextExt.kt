@@ -201,7 +201,15 @@ fun Context.getVoiceInputMethods(
 
 fun Context.getCurrentVoiceInputMethod(
     inputMethods: List<Pair<InputMethodInfo, InputMethodSubtype>> = getVoiceInputMethods()
-) = inputMethods.find { it.first.id == config.voiceInputMethod }
+): Pair<InputMethodInfo, InputMethodSubtype>? {
+    val configured = inputMethods.find { it.first.id == config.voiceInputMethod }
+    if (configured != null) return configured
+    val fallback = inputMethods.firstOrNull()
+    if (fallback != null) {
+        config.voiceInputMethod = fallback.first.id
+    }
+    return fallback
+}
 
 fun Context.getVoiceInputRadioItems(
     inputMethods: List<Pair<InputMethodInfo, InputMethodSubtype>> = getVoiceInputMethods()

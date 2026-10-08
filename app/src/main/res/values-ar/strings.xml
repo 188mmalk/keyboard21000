@@ -78,4 +78,5 @@
     <string name="tool_languages">اللغات</string>
     <string name="unpin_text">إلغاء التثبيت</string>
     <string name="text_unpinned">تم إلغاء تثبيت النص</string>
+    <string name="enable_voice_typing_settings">يرجى تفعيل الكتابة بالصوت من Google في إعدادات لوحة المفاتيح</string>
 </resources>

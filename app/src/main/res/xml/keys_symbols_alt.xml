@@ -66,7 +66,7 @@
             app:code="-5"
             app:isRepeatable="true"
             app:keyEdgeFlags="right"
-            app:keyIcon="@drawable/ic_clear_vector"
+            app:keyIcon="@drawable/ic_backspace_cyan"
             app:keyWidth="15%p" />
     </Row>
     <Row>
@@ -96,7 +96,7 @@
         <Key
             app:code="-4"
             app:keyEdgeFlags="right"
-            app:keyIcon="@drawable/ic_enter_vector"
+            app:keyIcon="@drawable/ic_enter_cyan"
             app:keyWidth="15%p" />
     </Row>
 </Keyboard>

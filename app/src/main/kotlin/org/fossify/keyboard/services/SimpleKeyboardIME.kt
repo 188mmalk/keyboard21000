@@ -779,7 +779,27 @@ class SimpleKeyboardIME : InputMethodService(), OnKeyboardActionListener, Shared
                 }
             }
 
-            if (keyboardMode != KEYBOARD_LETTERS) return keyboard
+            if (keyboardMode != KEYBOARD_LETTERS) {
+                val modeChangeIndex = keys.indexOfFirst { it.code == MyKeyboard.KEYCODE_MODE_CHANGE }
+                if (modeChangeIndex != -1) {
+                    val modeKey = keys[modeChangeIndex]
+                    modeKey.label = if (config.keyboardLanguage == LANGUAGE_ARABIC) "أ ب ج" else "ABC"
+                }
+
+                for (key in keys) {
+                    if (key.label == "،" && config.keyboardLanguage != LANGUAGE_ARABIC) {
+                        key.label = ","
+                    } else if (key.label == "," && config.keyboardLanguage == LANGUAGE_ARABIC) {
+                        key.label = "،"
+                    }
+                    if (key.label == "؟" && config.keyboardLanguage != LANGUAGE_ARABIC) {
+                        key.label = "?"
+                    } else if (key.label == "?" && config.keyboardLanguage == LANGUAGE_ARABIC) {
+                        key.label = "؟"
+                    }
+                }
+                return keyboard
+            }
             val emojiKeyIndex = keys.indexOfFirst { it.code == MyKeyboard.KEYCODE_EMOJI_OR_LANGUAGE }
             if (emojiKeyIndex != -1) {
                 val emojiKey = keys[emojiKeyIndex]
